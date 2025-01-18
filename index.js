@@ -1,6 +1,6 @@
 const { Client, GatewayIntentBits, REST, Routes } = require("discord.js");
-const { joinVoiceChannel, createAudioPlayer, createAudioResource } = require("@discordjs/voice");
-const ytdl = require("ytdl-core");
+const ytdl = require('ytdl-core');
+const { joinVoiceChannel, createAudioPlayer, createAudioResource } = require('@discordjs/voice');
 
 const client = new Client({
     intents: [
@@ -91,13 +91,18 @@ client.on("interactionCreate", async (interaction) => {
             guildId: guild.id,
             adapterCreator: guild.voiceAdapterCreator,
         });
-    
-    
-        const resource = createAudioResource(url, {
-            inlineVolume: true
-        })
 
-        resource.volume.setVolume(1); // Volume à 50%
+         // Utilisation de ytdl pour créer un flux audio
+    const stream = ytdl(url, {
+        filter: 'audioonly', // Récupère uniquement l'audio
+        highWaterMark: 1 << 25, // Optimisation pour les vidéos longues
+    });
+    
+    const resource = createAudioResource(stream, {
+        inlineVolume: true,
+    });
+
+    resource.volume.setVolume(1); // Volume à 100%
     
         const player = createAudioPlayer();
         connection.subscribe(player)
@@ -105,15 +110,23 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.reply("Quelle musique de marde!");
     }
 
-    if (commandName === "leave") {
+    const { getVoiceConnection } = require('@discordjs/voice');
+
+if (commandName === "leave") {
+    try {
         const connection = getVoiceConnection(guild.id);
         if (connection) {
-            connection.destroy();
+            connection.destroy(); // Déconnecte proprement le bot
             return interaction.reply("Je quitte le canal vocal !");
         } else {
             return interaction.reply("Je ne suis pas dans un canal vocal !");
         }
+    } catch (error) {
+        console.error("Erreur lors de l'exécution de la commande leave :", error);
+        return interaction.reply("Une erreur est survenue lors de la tentative de quitter le canal vocal.");
     }
+}
+
 });
 
 client.login(token);
